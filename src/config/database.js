@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { isDev } from './env.js'
+import { isDev, isProd } from './env.js'
 
 const prisma = global.__prisma ?? new PrismaClient({
   log: isDev ? ['query', 'error', 'warn'] : ['error'],
