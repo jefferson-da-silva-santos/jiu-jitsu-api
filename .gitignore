@@ -1,0 +1,7 @@
+node_modules/
+.env
+uploads/receipts/*
+uploads/banners/*
+!uploads/receipts/.gitkeep
+!uploads/banners/.gitkeep
+dist/

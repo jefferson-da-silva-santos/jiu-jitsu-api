@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ORGANIZER
+  ATHLETE
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  FINISHED
+  CANCELLED
+}
+
+enum RegistrationStatus {
+  PENDING
+  PAYMENT_SENT
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BeltColor {
+  WHITE
+  BLUE
+  PURPLE
+  BROWN
+  BLACK
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum FightStatus {
+  SCHEDULED
+  ONGOING
+  FINISHED
+  BYE
+}
+
+enum HighlightType {
+  TICKER
+  NOBLE_AREA
+  BOTH
+}
+
+enum ProductCategory {
+  APPAREL
+  EQUIPMENT
+  ACCESSORIES
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  cpf       String   @unique
+  phone     String?
+  birthdate DateTime?
+  role      Role     @default(ATHLETE)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens   RefreshToken[]
+  registrations   Registration[]
+  organizedEvents Event[]         @relation("OrganizerEvents")
+  fighterA        Fight[]         @relation("FighterA")
+  fighterB        Fight[]         @relation("FighterB")
+  winnerOf        Fight[]         @relation("Winner")
+  orders          Order[]
+  cashbacks       Cashback[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Event {
+  id                   String      @id @default(uuid())
+  title                String
+  slug                 String      @unique
+  description          String?
+  bannerUrl            String?
+  status               EventStatus @default(DRAFT)
+  organizerId          String
+  venueName            String
+  venueAddress         String
+  venueCity            String
+  venueState           String
+  venueLat             Float?
+  venueLng             Float?
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime
+  platformFeeOverride  Int?
+  rules                String?
+  maxAthletes          Int?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  organizer     User            @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  categories    EventCategory[]
+  registrations Registration[]
+  highlights    EventHighlight[]
+  brackets      Bracket[]
+
+  @@map("events")
+}
+
+model EventCategory {
+  id         String    @id @default(uuid())
+  eventId    String
+  name       String
+  gender     Gender
+  belt       BeltColor
+  weightMin  Float?
+  weightMax  Float?
+  isAbsolute Boolean   @default(false)
+  price      Int
+  maxSlots   Int?
+  createdAt  DateTime  @default(now())
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  brackets      Bracket[]
+  fights        Fight[]
+
+  @@map("event_categories")
+}
+
+model Registration {
+  id         String             @id @default(uuid())
+  eventId    String
+  categoryId String
+  athleteId  String
+  teamName   String
+  status     RegistrationStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  event    Event         @relation(fields: [eventId], references: [id])
+  category EventCategory @relation(fields: [categoryId], references: [id])
+  athlete  User          @relation(fields: [athleteId], references: [id])
+  payment  Payment?
+  cashback Cashback?
+
+  @@unique([eventId, categoryId, athleteId])
+  @@map("registrations")
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  registrationId   String        @unique
+  amountCents      Int
+  platformFeeCents Int
+  status           PaymentStatus @default(PENDING)
+  receiptUrl       String?
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectedReason   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Cashback {
+  id             String   @id @default(uuid())
+  registrationId String   @unique
+  userId         String
+  amountCents    Int
+  percentUsed    Int
+  granted        Boolean  @default(false)
+  grantedAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  registration Registration @relation(fields: [registrationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@map("cashbacks")
+}
+
+model Bracket {
+  id         String   @id @default(uuid())
+  eventId    String
+  categoryId String
+  generated  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  event    Event         @relation(fields: [eventId], references: [id])
+  category EventCategory @relation(fields: [categoryId], references: [id])
+  fights   Fight[]
+
+  @@unique([eventId, categoryId])
+  @@map("brackets")
+}
+
+model Fight {
+  id          String      @id @default(uuid())
+  bracketId   String
+  categoryId  String
+  round       Int
+  position    Int
+  status      FightStatus @default(SCHEDULED)
+  matNumber   Int?
+  scheduledAt DateTime?
+  fighterAId  String?
+  fighterBId  String?
+  winnerId    String?
+  scoreA      Int         @default(0)
+  scoreB      Int         @default(0)
+  advantagesA Int         @default(0)
+  advantagesB Int         @default(0)
+  penaltiesA  Int         @default(0)
+  penaltiesB  Int         @default(0)
+  durationSeconds Int?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  bracket  Bracket       @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  category EventCategory @relation(fields: [categoryId], references: [id])
+  fighterA User?         @relation("FighterA", fields: [fighterAId], references: [id])
+  fighterB User?         @relation("FighterB", fields: [fighterBId], references: [id])
+  winner   User?         @relation("Winner", fields: [winnerId], references: [id])
+
+  @@map("fights")
+}
+
+model EventHighlight {
+  id         String        @id @default(uuid())
+  eventId    String
+  type       HighlightType
+  startsAt   DateTime
+  endsAt     DateTime
+  priceCents Int
+  paid       Boolean       @default(false)
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_highlights")
+}
+
+model NewsPost {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  content     String
+  coverUrl    String?
+  authorName  String
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("news_posts")
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  category    ProductCategory
+  price       Int
+  stock       Int             @default(0)
+  imageUrl    String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id         String   @id @default(uuid())
+  userId     String
+  totalCents Int
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitCents Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
