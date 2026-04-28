@@ -19,7 +19,7 @@ export const env = {
   JWT_REFRESH_SECRET: required('JWT_REFRESH_SECRET'),
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
 
-  CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5174',
 
   UPLOAD_MAX_SIZE_MB: parseInt(process.env.UPLOAD_MAX_SIZE_MB ?? '10', 10),
   UPLOAD_DIR: process.env.UPLOAD_DIR ?? './uploads',

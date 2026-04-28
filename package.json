@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch server.js",
+    "dev": "nodemon server.js",
     "start": "node server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -32,6 +32,7 @@
   "devDependencies": {
     "@jest/globals": "^30.3.0",
     "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
     "prisma": "^5.22.0"
   }
 }
