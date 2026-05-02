@@ -14,6 +14,10 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 
+// ─── Configuração segura para ambiente Serverless (Vercel) ───────────────
+// Configura o proxy de forma estrita para evitar que o IP seja falsificado
+app.set('trust proxy', 'loopback, linklocal, uniquelocal')
+
 // ─── Segurança ────────────────────────────────────────────────────────────
 app.use(helmet())
 app.use(cors({
@@ -25,8 +29,8 @@ app.use(cors({
 
 // ─── Rate limiting ────────────────────────────────────────────────────────
 app.use(rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX,
+  windowMs: env.RATE_LIMIT_WINDOW_MS || 900000,
+  max: env.RATELIMIT_MAX || 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Muitas requisições. Tente novamente em instantes.' },

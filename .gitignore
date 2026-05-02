@@ -5,3 +5,5 @@ uploads/banners/*
 !uploads/receipts/.gitkeep
 !uploads/banners/.gitkeep
 dist/
+.vercel
+.env*.local
